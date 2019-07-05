@@ -1,0 +1,11 @@
+{
+    "require": {
+        "slim/slim": "^3.12",
+        "tuupola/slim-jwt-auth": "^3.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Apify\\": "api/classes/"
+        }
+    }
+}
