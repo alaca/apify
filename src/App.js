@@ -10,15 +10,16 @@ import {
 // Components
 import RouteLayout from './components/RouteLayout' 
 
-// Routes
+// Route Components
 import Login from './routes/Login'
 import Home from './routes/Home'
 
+// Styling
 import 'semantic-ui-css/semantic.min.css'
 import './style.css'
-import AppReducer from './reducers/AppReducer';
 
-import AppState from './context/AppState'
+import AppState from './context'
+import AppReducer from './reducers/AppReducer'
 
 
 const App = () => {
@@ -27,7 +28,7 @@ const App = () => {
 
   return (
     <AppState.Provider value={[state, dispatch]}>
-      <Router basename="/apify/build">
+      <Router>
           <Switch>
             <Route exact path="/">
               <Redirect to="/login" />

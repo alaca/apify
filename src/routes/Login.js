@@ -15,7 +15,7 @@ import {
 
 import { Link } from 'react-router-dom'
 
-import AppState from '../context/AppState'
+import AppState from '../context'
 import API from '../api'
 
 export const Login = (props) => {
@@ -69,16 +69,16 @@ export const Login = (props) => {
     API.post('/login', {
       username: email,
       password: password
-    }).then( data => {
+    }).then( response => {
 
-      sessionStorage.setItem('jwt', data.token)
+      sessionStorage.setItem('jwt', response.data.token)
 
       dispatch({
         type: 'login',
         payload: true
       })
 
-      props.history.push('/home') 
+     props.history.push('/home') 
 
     }).catch(err => {
 
@@ -112,7 +112,7 @@ export const Login = (props) => {
         </Message>
       )
   
-      return <div>{errors}</div>
+      return <Container style={{marginTop: '10px'}}>{errors}</Container>
 
     }
 
@@ -164,12 +164,12 @@ export const Login = (props) => {
                 <Divider></Divider>
 
                 <Container textAlign="right">
-                  <Link to="/lost-password">Forgot password?</Link>
+                  <Link to="/lost-password">Lost password?</Link>
                 </Container>
 
-                { showErrorMessages() }
-
               </Form>
+
+              { showErrorMessages() }
 
             </Card.Content>
 

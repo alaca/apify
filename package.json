@@ -2,7 +2,7 @@
   "name": "apify",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://localhost/apify/build",
+  "homepage": "http://localhost/apify",
   "dependencies": {
     "axios": "^0.18.1",
     "react": "^16.8.6",

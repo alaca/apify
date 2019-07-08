@@ -4,6 +4,7 @@ namespace Apify\Api;
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use \Firebase\JWT\JWT;
 
 class Login {
 
@@ -15,8 +16,7 @@ class Login {
     }
 
     public function __invoke( Request $request, Response $response, $args )
-    {
-        
+    {                
         $params = $request->getParams();
 
         $errors = [];
@@ -38,7 +38,6 @@ class Login {
 
             return $response;
         }
-
 
         $stmt = $this->container->pdo->prepare('
             SELECT id, name 
@@ -65,6 +64,24 @@ class Login {
             return $response;
 
         }
+
+        // Generate token
+        $secret = $this->container->get('settings')['jwt'];
+        $expire = new \DateTime('now +2 hours');
+        
+        $payload = [ 
+            'exp' => $expire->getTimeStamp() 
+        ];
+
+        $token = JWT::encode($payload, $secret, 'HS256');
+
+        $response = $response->withJson([
+            'status'  => 'success',
+            'code'    => 200,
+            'token' => $token
+        ], 200 );
+
+        return $response;
         
 
     }
