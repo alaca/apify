@@ -5,7 +5,7 @@ namespace Apify\Middleware\Api;
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
-class PublicAuth {
+class Auth {
     
     private $container;
 
@@ -38,10 +38,10 @@ class PublicAuth {
             'key' => $params['api_key']
         ]);
 
-        $data = $stmt->fetch();
+        $api = $stmt->fetch();
 
         // API key exists?
-        if ( ! $data ) {
+        if ( ! $api ) {
 
             return $response->withJson([
                 'status'  => 'error',
@@ -52,7 +52,7 @@ class PublicAuth {
         }
 
         // Active API key?
-        if ( ! $data->active ) {
+        if ( ! $api->active ) {
 
             return $response->withJson([
                 'status'  => 'error',
@@ -62,9 +62,9 @@ class PublicAuth {
         }
 
         // Expired API key?
-        if ( ! is_null( $data->date_expire ) ) {
+        if ( ! is_null( $api->date_expire ) ) {
 
-            $expire = new \DateTime( $data->date_expire );
+            $expire = new \DateTime( $api->date_expire );
             $current = new \DateTime();
 
             if ( $current > $expire ) {
@@ -78,11 +78,11 @@ class PublicAuth {
         }
 
         // Check request domain
-        if ( ! is_null( $data->domain ) ) {
+        if ( ! is_null( $api->domain ) ) {
 
             $host = $request->getUri()->getHost();
 
-            $allowed_domains = explode( ',', $data->domain );
+            $allowed_domains = explode( ',', $api->domain );
             $allowed_domains = array_map( 'trim', $allowed_domains );
 
             if ( ! in_array( $host, $allowed_domains ) ) {
@@ -94,7 +94,6 @@ class PublicAuth {
             }
 
         }
-
 
         return $next( $request, $response );
     }

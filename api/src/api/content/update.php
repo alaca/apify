@@ -1,15 +1,14 @@
 <?php 
 
-namespace Apify\Api;
+namespace Apify\Api\Content;
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
-use \Apify\Traits;
 
-class InsertContent {
+class Update {
 
-    use Traits\ApiKeyPermissions;
-    use Traits\RequiredContentFields;
+    use \Apify\Traits\Permissions;
+    use \Apify\Traits\Fields;
 
     private $container;
 
@@ -23,7 +22,7 @@ class InsertContent {
         $params = $request->getParams();
 
         // Check content type
-        $stmt = $this->container->pdo->prepare( 'SELECT id, name FROM content WHERE content_type = :type');
+        $stmt = $this->container->pdo->prepare( 'SELECT id, name FROM content_types WHERE content_type = :type');
         $stmt->execute([
             'type' => $args['type']
         ]);
@@ -43,7 +42,7 @@ class InsertContent {
         }
 
         // Check fields
-        $fields = $this->getRequiredFieldsForContent( $content->id );
+        $fields = $this->getFields( $content->id );
 
         if ( empty( $fields ) ) {
 
@@ -55,31 +54,13 @@ class InsertContent {
     
             return $response;
             
-        } else {
+        } 
 
-            foreach( $fields as $name ) {
-
-                if (
-                    ! array_key_exists( $name, $params ) 
-                    || empty( $params[$name] )
-                ) {
-    
-                    $response = $response->withJson([
-                        'status'  => 'error',
-                        'code'    => 403,
-                        'message' => sprintf( 'Field %s is required', $name ),
-                    ], 403 );
-        
-                    return $response;
-                }
-    
-            }
-
-        }
-
-
-        // Check API key insert permissions
-        if ( ! $this->checkApiKeyPermissions( $params['api_key'], 'insert' ) ) {
+        // Check API key permissions
+        if ( 
+            $request->getAttribute('route')->getName() === 'public' 
+            && ! $this->checkApiKeyActionPermissions( $params['api_key'], 'update' ) 
+        ) {
 
             $response = $response->withJson([
                 'status'  => 'error',
@@ -90,27 +71,42 @@ class InsertContent {
             return $response;
         }
 
-        // Insert data
+        // Update data
         try {
 
-            foreach( $fields as $id => $field_name ) {
+            foreach( $fields as $field ) {
 
-                $stmt = $this->container->pdo->prepare('
-                    INSERT INTO content_values ( content_id, field_id, field_value ) 
-                    VALUES ( :content_id, :field_id, :field_value )
-                ');
+                if ( array_key_exists( $field->name, $params ) ) {
 
-                $stmt->execute([
-                    'content_id'  => $content->id,
-                    'field_id'    => $id,
-                    'field_value' => $params[ $field_name ] ?? ''
-                ]);
+                    // Remove existing field
+                    $stmt = $this->container->pdo->prepare('
+                        DELETE FROM content_values WHERE entry_id = :entry_id AND field_id = :field_id
+                    ');
+
+                    $stmt->execute([
+                        'entry_id'    => $args['id'],
+                        'field_id'    => $field->id,
+                    ]);
+
+                    // Insert field with new data
+                    $stmt = $this->container->pdo->prepare('
+                        INSERT INTO content_values ( entry_id, field_id, field_value ) 
+                        VALUES ( :entry_id, :field_id, :field_value )
+                    ');
+
+                    $stmt->execute([
+                        'entry_id'    => $args['id'],
+                        'field_id'    => $field->id,
+                        'field_value' => $params[ $field->name ]
+                    ]);
+
+                }
 
             }
 
             $response = $response->withJson([
                 'status' => 'success',
-                'code'   => 201,
+                'code'   => 201
             ], 201);
     
             

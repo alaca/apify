@@ -2,7 +2,7 @@
 
 namespace Apify\Traits;
 
-trait RequiredContentFields {
+trait Fields {
 
     /**
      * Get required fields for content
@@ -10,13 +10,12 @@ trait RequiredContentFields {
      * @param int $id content id
      * @return array
      */
-    private function getRequiredFieldsForContent( $id ) {
+    private function getFields( $id ) {
 
         $stmt = $this->container->pdo->prepare('
-            SELECT id, field_name 
+            SELECT id, field_name as name, field_required as is_required, field_type as type
             FROM content_fields 
-            WHERE field_required = "1" 
-            AND content_id = :content_id
+            WHERE content_id = :content_id
         ');
 
         $stmt->execute([ 'content_id' => $id ]);
@@ -26,13 +25,7 @@ trait RequiredContentFields {
         if ( ! $data ) 
             return [];
 
-        $fields = [];
-
-        foreach( $data as $field ) {
-            $fields[$field->id] = $field->field_name;
-        }
-
-        return $fields;
+        return $data;
 
     }
     

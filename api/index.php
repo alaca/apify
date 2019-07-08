@@ -24,42 +24,87 @@ $container['pdo'] = function ($c) {
 
 // 404 handler
 $container['notFoundHandler'] = function () {
-
     return function ($request, $response) {
 
-        return $response->withJson([
-            'status'  => 'error',
-            'code'    => 404,
-            'message' => 'Route not found'
-        ], 404);
-
+        $cors = new \Apify\Middleware\Api\Cors();
+        
+        return $cors->addHeaders($response)
+            ->withJson([
+                'status'  => 'error',
+                'code'    => 404,
+                'message' => 'Route not found'
+            ], 404);
     };
 };
-            
+
+// Error handler
+$container['errorHandler'] = function ($c) {
+    return function ($request, $response, $exception) use ($c) {
+
+        $cors = new \Apify\Middleware\Api\Cors();
+
+        return $cors->addHeaders($response)
+            ->withJson([
+                'status'  => 'error',
+                'code'    => 500,
+                'message' => $c->get('settings')['displayErrorDetails'] ? $exception->getMessage() : 'Something went wrong'
+            ], 500);
+    };
+};
+         
 
 // Public routes
 $app->group('/public', function( $route ) {
 
-    $route->get('/get/{type}[/{id}]',     \Apify\Api\GetContent::class);
-    $route->post('/insert/{type}',        \Apify\Api\InsertContent::class);
-    $route->put('/update/{type}/{id}',    \Apify\Api\Update::class);
-    $route->delete('/delete/{type}/{id}', \Apify\Api\Delete::class);
+    // Get
+    $route->get('/get/{type}[/{id}]', \Apify\Api\Content\Get::class)
+        ->setName('public');
 
-})->add(\Apify\Middleware\Api\PublicAuth::class);
+    // Update
+    $route->put('/update/{type}/{id}', \Apify\Api\Content\Update::class)
+        ->setName('public');
+
+    // Insert
+    $route->post('/insert/{type}', \Apify\Api\Content\Insert::class)
+        ->setName('public');
+
+    // Delete
+    $route->delete('/delete/{type}/{id}', \Apify\Api\Content\Delete::class)
+        ->setName('public');
+
+    // Query
+    $route->post('/query', \Apify\Api\Query::class)
+        ->setName('public');
+
+})->add(\Apify\Middleware\Api\Auth::class);
 
 // Apify routes
 $app->group('/apify', function( $route ) {
 
-    $route->get('/get/{type}[/{id}]',     \Apify\Api\Get::class);
-    $route->put('/update/{type}/{id}',    \Apify\Api\Update::class);
-    $route->post('/insert/{type}',        \Apify\Api\Insert::class);
-    $route->delete('/delete/{type}/{id}', \Apify\Api\Delete::class);
-    $route->post('/add/{type}',           \Apify\Api\AddContent::class);
-    $route->put('/edit/{type}',           \Apify\Api\EditContent::class);
+    $route->get('/get/{type}[/{id}]',     \Apify\Api\Content\Get::class);
+    $route->put('/update/{type}/{id}',    \Apify\Api\Content\Update::class);
+    $route->post('/insert/{type}',        \Apify\Api\Content\Insert::class);
+    $route->delete('/delete/{type}/{id}', \Apify\Api\Content\Delete::class);
+
+    $route->post('/content/add',             \Apify\Api\AddContentType::class);
+    $route->put('/content/edit/{id}',        \Apify\Api\AddContentType::class);
+    $route->post('/content/add/{type}',      \Apify\Api\AddContent::class);
+    $route->put('/content/edit/{type}/{id}', \Apify\Api\EditContent::class);
 
 } )->add(new Tuupola\Middleware\JwtAuthentication([
-    'secret' => $settings['token']
+    'secret' => $settings['jwt']
 ]));
+
+// User auth
+$app->post('/login',  \Apify\Api\Login::class);
+
+
+// Cors
+$app->options('/{routes:.+}', function ($request, $response, $args) {
+    return $response;
+});
+
+$app->add(\Apify\Middleware\Api\Cors::class);
 
 
 $app->run();

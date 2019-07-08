@@ -9,5 +9,5 @@ return [
     ],
     'displayErrorDetails'    => true,
     'addContentLengthHeader' => false,
-    'token' => '2tj<8GEa4GM^k@EY'
+    'jwt' => '2tj<8GEa4GM^k@EY'
 ];
